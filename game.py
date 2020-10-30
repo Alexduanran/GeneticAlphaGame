@@ -15,10 +15,10 @@ clock = pygame.time.Clock()
 # -------- Main Program Loop -----------
 training_paddle = paddle.Paddle(y=0)
 population_ = population.Population(100)
-winner = population_.paddles[-1]
-winner.winner = True
+winner = None
 generation = 1
 
+# Best paddle of all generations
 champion = None
 champion_fitness = -1 * float('inf')
 
@@ -54,15 +54,17 @@ while carryOn:
             paddle.update()
             balls[i].update(paddle)
 
+
         # Draw every paddle except the winning one
-        if paddle.alive and paddle != winner:
+        if paddle.alive and paddle != winner and paddle != champion:
             paddle.winner = False
+            paddle.champion = False
             paddle.draw(screen)
             balls[i].draw(screen)
 
-
     winner_index = -1
     # If the generation has died out
+    # Select winner and champion
     if still_alive == 0:
         generation += 1
         population_.calculateFitness()
@@ -72,12 +74,16 @@ while carryOn:
         if population_.fitness[winner_index] > champion_fitness:
             champion_fitness = population_.fitness[winner_index]
             champion = winner
+            champion.champion = True
         population_.new_population(winner, np.random.randint(0, 800), champion)
         print(generation)
 
-    # Draw the winning paddle
-    population_.paddles[winner_index].draw(screen)
-    population_.balls[winner_index].draw(screen)
+    # Draw the winning and champion paddle last
+    if champion:
+        champion.draw(screen)
+    if winner and winner != champion:
+        # print(winner.winner, winner.champion)
+        winner.draw(screen)
  
     # --- Go ahead and update the screen with what we've drawn.
     pygame.display.flip()

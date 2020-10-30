@@ -12,6 +12,7 @@ class Paddle:
         self.alive = True
         self.output = 2
         self.winner = False
+        self.champion = False
 
         # Fitness
         self.hit = 0
@@ -100,9 +101,14 @@ class Paddle:
 
     # Draw the paddle
     def draw(self, screen):
-	    if self.winner == False:
+	    if not self.alive:
+		    return
+	    if not self.winner and not self.champion:
 		    pygame.draw.rect(screen,config.BLACK,[self.x,self.y,100,20])
 		    pygame.draw.rect(screen,config.RED,[self.x+2,self.y+2,100-4,20-4])
-	    else:
+	    if self.champion:
+		    pygame.draw.rect(screen,config.BLACK,[self.x,self.y,100,20])
+		    pygame.draw.rect(screen,config.GREEN,[self.x+2,self.y+2,100-4,20-4])
+	    elif self.winner:
 		    pygame.draw.rect(screen,config.BLACK,[self.x,self.y,100,20])
 		    pygame.draw.rect(screen,config.BLUE,[self.x+2,self.y+2,100-4,20-4])

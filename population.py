@@ -17,6 +17,7 @@ class Population:
             parent_coefs = self.mutateCoefs(parent.coefs)
             new_population.append(paddle.Paddle(coefs=parent_coefs))
         winner.reset()
+        champion.reset()
         new_population.append(winner)
         new_population.append(champion)
         self.balls = [ball.Ball(x=ballx) for _ in range(self.size+1)]
@@ -26,7 +27,7 @@ class Population:
         self.fitness = []
         for paddle in self.paddles:
             self.fitness.append(paddle.calculateFitness())
-        print(self.fitness)
+        # print(self.fitness)
 
     def selectParent(self):
         selection = np.random.choice(np.arange(self.size), 50, replace=False)
@@ -36,7 +37,7 @@ class Population:
             if self.fitness[i] > max_fitness:
                 max_fitness = self.fitness[i]
                 max_ = i
-        print(max_fitness)
+        # print(max_fitness)
         return self.paddles[max_]
 
     #Returns mutated coefs
