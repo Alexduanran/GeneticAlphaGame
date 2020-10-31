@@ -37,7 +37,7 @@ class Population:
             if self.fitness[i] > max_fitness:
                 max_fitness = self.fitness[i]
                 max_ = i
-        # print(max_fitness)
+        print(max_fitness)
         return self.paddles[max_]
 
     #Returns mutated coefs

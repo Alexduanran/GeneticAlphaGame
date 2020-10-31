@@ -45,7 +45,7 @@ while carryOn:
     for i, paddle in enumerate(population_.paddles):
         balls = population_.balls
         distance = ((balls[i].y - paddle.y) ** 2 + (balls[i].x - paddle.x) ** 2) ** 0.5
-        inputs = np.array([paddle.x, distance, balls[i].xspeed])
+        inputs = np.array([paddle.x, balls[i].x, balls[i].y, balls[i].xspeed])
         paddle.calculateOutput(inputs, config.LAYERS)
 
         # Update the paddel if it is still alive
@@ -63,6 +63,7 @@ while carryOn:
             balls[i].draw(screen)
 
     winner_index = -1
+    champion_index = -1
     # If the generation has died out
     # Select winner and champion
     if still_alive == 0:
@@ -73,6 +74,7 @@ while carryOn:
         winner.winner = True
         if population_.fitness[winner_index] > champion_fitness:
             champion_fitness = population_.fitness[winner_index]
+            champion_index = winner_index
             champion = winner
             champion.champion = True
         population_.new_population(winner, np.random.randint(0, 800), champion)
@@ -81,8 +83,9 @@ while carryOn:
     # Draw the winning and champion paddle last
     if champion:
         champion.draw(screen)
+        balls[champion_index].draw(screen)
     if winner and winner != champion:
-        # print(winner.winner, winner.champion)
+        balls[winner_index].draw(screen)
         winner.draw(screen)
  
     # --- Go ahead and update the screen with what we've drawn.

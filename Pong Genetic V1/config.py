@@ -2,7 +2,7 @@
 SIZE = (800, 600)
 
 # Shape of neural network
-LAYERS = [3, 5, 10, 5, 3]
+LAYERS = [4, 5, 10, 5, 3]
 
 BLACK = (0,0,0)
 WHITE = (255,255,255)

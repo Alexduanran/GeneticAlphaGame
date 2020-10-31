@@ -19,6 +19,7 @@ class Paddle:
         self.distance_tranvelled = 0
         self.distance_to_ball = 0
         self.moving_duration = 0
+        self.ball_travelled = 0
 
     # Creates random coefficients for the neural network 
     def generateCoefs(self, layer_structure):
@@ -66,7 +67,8 @@ class Paddle:
 
     # Fitness function
     def calculateFitness(self):
-        return 200 * self.hit - 0.5 * self.distance_to_ball 
+        # return 200 * self.hit - 0.01 * self.distance_tranvelled - 0.5 * self.distance_to_ball 
+        return self.ball_travelled - 1.05 * self.distance_tranvelled - 0.5 * self.distance_to_ball
 
     # Reset score, speed and position
     def reset(self):

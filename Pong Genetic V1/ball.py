@@ -11,6 +11,7 @@ class Ball:
 	    self.xspeed = xspeed
 	    self.yspeed = yspeed
 	    self.alive = True
+	    self.distance_travelled = 0
 	
     #Update position based on speed 
     def update(self, paddle):
@@ -19,6 +20,8 @@ class Ball:
         
         self.x += self.xspeed
         self.y += self.yspeed
+
+        self.distance_travelled += abs(self.xspeed)
         
         #Accounts for bouncing off walls and paddle
         if self.x<0:
@@ -33,10 +36,11 @@ class Ball:
         elif self.x>paddle.x and self.x<paddle.x+100 and self.ylast<config.SIZE[1]-35 and self.y>=config.SIZE[1]-35:
             self.yspeed *= -1
             paddle.hit += 1
-            paddle.distance_tranvelled = 0
+            # paddle.distance_travelled = 0
             self.distance_to_ball = 0
         elif self.y>config.SIZE[1]:
             self.yspeed *= -1
+            paddle.ball_travelled = self.distance_travelled
             paddle.alive = False
             paddle.distance_to_ball = abs(self.x - paddle.x)
             # paddle.score -= 1000
