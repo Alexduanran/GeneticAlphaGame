@@ -1,6 +1,7 @@
 import sys
 from typing import List
 from paddle import *
+from ball import *
 import numpy as np
 import pygame
 from neural_network import FeedForwardNetwork, sigmoid, linear, relu
@@ -24,6 +25,7 @@ class Main():
                                          settings['probability_SPBX']
         ])
         self._SPBX_type = settings['SPBX_type'].lower()
+        self._SBX_eta = settings['SBX_eta']
         self._mutation_rate = settings['mutation_rate']
 
         # Determine size of next gen based off selection type
@@ -40,6 +42,7 @@ class Main():
         
         individuals: List[Individual] = []
 
+        # Create initial generation
         for _ in range(settings['num_parents']):
             individual = Paddle(self.board_size, hidden_layer_architecture=settings['hidden_network_architecture'],
                               hidden_activation=settings['hidden_layer_activation'],
@@ -50,18 +53,25 @@ class Main():
 
         self.current_generation = 0
 
+        # Pygame
         pygame.init()
         screen = pygame.display.set_mode(self.board_size)
         pygame.display.set_caption('pong')
 
+        # The loop will carry on until the user exit the game (e.g. clicks the close button).
         carryOn = True
+        # The clock will be used to control how fast the screen updates
         clock = pygame.time.Clock()
 
-        self.still_alive = 0
-        self.best_score = 0
+        # Best of single generation
         self.winner = None
+        # Best paddle of all generations
         self.champion = None
         self.champion_fitness = -1 * np.inf
+
+        # Initilize training paddle
+        training_paddle = Paddle(self.board_size, y_pos=0)
+        self.newball = True
 
         while carryOn:
             for event in pygame.event.get():
@@ -69,34 +79,51 @@ class Main():
                     carryOn = False
 
             screen.fill(BLACK)
+            # New set of balls
+            if self.newball:
+                ball_x = np.random.randint(0, 800)
+                balls = [Ball(x=ball_x) for _ in range(self._next_gen_size+1)]
+                self.newball = False
 
+            # Update training paddle
+            training_paddle.update(ball=balls[-1])
+            balls[-1].update(training_paddle)
+            balls[-1].update_pos()
+            training_paddle.draw(screen)
+
+            self.still_alive = 0
+            # Loop through the paddles in the generation
             for i, paddle in enumerate(self.population.individuals):
+
+                # Update paddel if still alive
                 if paddle.is_alive:
                     self.still_alive += 1
                     # Inputs for neural network
-                    inputs = np.array([[paddle.x_pos]])
+                    distance = ((balls[i].y - paddle.y_pos) ** 2 + (balls[i].x - paddle.x_pos) ** 2) ** 0.5
+                    ball_distance_left_wall = ball_x - 0
+                    ball_distance_right_wall = self.board_size[0] - ball_x
+                    inputs = np.array([[paddle.x_pos], [ball_distance_left_wall], [ball_distance_right_wall], [balls[i].xspeed], [paddle.xspeed], [balls[i].y]])
                     paddle.update(inputs)
+                    balls[i].update(paddle)
+                    balls[i].update_pos()
                     paddle.move()
             
+                # Draw every paddle except the best ones
                 if paddle.is_alive and paddle != self.winner and paddle != self.champion:
                     paddle.winner = False
                     paddle.champion = False
+                    balls[i].draw(screen)
                     paddle.draw(screen)
 
-            self.winner_index = -1
-            self.champion_index = -1
-
+            # Generate new generation when all have died out
             if self.still_alive == 0:
-                self.current_generation += 1
                 self.next_generation()
 
             # Draw the winning and champion paddle last
-            if self.champion is not None:
-                self.champion.draw(screen, champion=True)
-            # balls[champion_index].draw(screen)
-            # balls[winner_index].draw(screen)
             if self.winner is not None:
                 self.winner.draw(screen, winner=True)
+            if self.champion is not None:
+                self.champion.draw(screen, champion=True)
             
             # --- Go ahead and update the screen with what we've drawn.
             pygame.display.flip()
@@ -109,6 +136,7 @@ class Main():
 
     def next_generation(self):
         self.current_generation += 1
+        self.newball = True
 
         # Calculate fitness of individuals
         for individual in self.population.individuals:
@@ -119,14 +147,16 @@ class Main():
         if self.winner.fitness > self.champion_fitness:
             self.champion_fitness = self.winner.fitness
             self.champion = self.winner
+        self.winner.reset()
+        self.champion.reset()
 
         # Print results from each generation
         print('======================= Gneration {} ======================='.format(self.current_generation))
         print('----Max fitness:', self.population.fittest_individual.fitness)
-        print('----Best Score:', self.population.fittest_individual.score)
+        # print('----Best Score:', self.population.fittest_individual.score)
         print('----Average fitness:', self.population.average_fitness)
         
-        self.population.individuals = elitism_selection(self.population, self.settings['num_parents'])
+        self.population.individuals = elitism_selection(self.population, settings['num_parents'])
         
         random.shuffle(self.population.individuals)
         next_pop: List[Paddle] = []

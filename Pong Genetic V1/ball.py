@@ -24,8 +24,8 @@ class Ball:
         self.distance_travelled += abs(self.xspeed)
         
         #Accounts for bouncing off walls and paddle
-        if self.x<0:
-            self.x=0
+        if self.x<15:
+            self.x=15
             self.xspeed *= -1
         elif self.x>config.SIZE[0]-15:
             self.x=config.SIZE[0]-15

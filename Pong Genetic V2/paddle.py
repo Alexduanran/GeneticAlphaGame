@@ -21,6 +21,7 @@ class Paddle(Individual):
     def __init__(self, board_size: Tuple[int, int],
                  chromosome: Optional[Dict[str, List[np.ndarray]]] = None,
                  x_pos: Optional[int] = 400, 
+                 y_pos: Optional[int] = 580,
                  xspeed: Optional[int] = 0,
                  hidden_layer_architecture: Optional[List[int]] = [1123125, 9],
                  hidden_activation: Optional[ActivationFunction] = 'relu',
@@ -28,6 +29,10 @@ class Paddle(Individual):
                  ):
 
         self._fitness = 0  # Overall fitness
+        self.hit = 0
+        self.distance_travelled = 0
+        self.ball_travelled = 0
+        self.distance_to_ball = 0
         self.is_alive = True
 
         self.board_size = board_size
@@ -37,14 +42,14 @@ class Paddle(Individual):
         self.output_activation = output_activation
 
         self.x_pos = x_pos
-        self.y_pos = self.board_size[1]-20
+        self.y_pos = y_pos
         self.xspeed = xspeed
 
         # Setting up network architecture
         # Each "Vision" has 3 distances it tracks: wall, apple and self
         # there are also one-hot encoded direction and one-hot encoded tail direction,
         # each of which have 4 possibilities.
-        num_inputs = 1 #@TODO: Add one-hot back in 
+        num_inputs = 6 #@TODO: Add one-hot back in 
         self.network_architecture = [num_inputs]                          # Inputs
         self.network_architecture.extend(self.hidden_layer_architecture)  # Hidden layers
         self.network_architecture.append(3)                               # 4 outputs, ['u', 'd', 'l', 'r']
@@ -73,7 +78,8 @@ class Paddle(Individual):
         # Give positive minimum fitness for roulette wheel selection
         # self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)*500) - (((.25 * self._frames)**1.3) * (self.score**1.2))
         # self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)*500) - (((.25 * self._frames)) * (self.score))
-        self._fitness = max(1, .1)
+        self._fitness = (2 ** self.hit + self.hit * 2.1) * 100 + ((1 - min(self.distance_travelled / self.ball_travelled, 1)) * 400) + (self.board_size[0] - self.distance_to_ball) * 0.25
+        self._fitness = max(self._fitness, .1)
 
     @property
     def chromosome(self):
@@ -102,8 +108,20 @@ class Paddle(Individual):
         #     self.network.params['b' + l] = self._chromosome['b' + l].reshape(b_shape)
         pass
 
-    def update(self, inputs):
-        self.network.feed_forward(inputs)
+    def reset(self):
+        self._fitness = 0
+        self.hit = 0
+        self.distance_travelled = 0
+        self.ball_travelled = 0
+        self.distance_to_ball = 0
+        self.is_alive = True
+
+    def update(self, inputs=None, ball=None):
+        if inputs is not None:
+            self.network.feed_forward(inputs)
+        elif ball:
+            self.x_pos = ball.x - 50
+            return
         if self.network.out == 0:
             self.xspeed = -5
         elif self.network.out == 1:
@@ -115,7 +133,7 @@ class Paddle(Individual):
     def move(self):
         self.x_pos += self.xspeed
         if self.x_pos < 0:
-            self.x = 0
+            self.x_pos = 0
         elif self.x_pos > self.board_size[0]-100:
             self.x_pos = self.board_size[0]-100
 
