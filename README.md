@@ -15,3 +15,7 @@ Supports elitism, roulettte-wheel, and tournament selection.
 Supports simulated binary, uniform binary, and single-point binary crossover. 
 
 Supports gaussian, random uniform, uniform with respect to best individual, exponential, and mmo mutation.
+
+### Snake-Genetic
+
+A snake game trained using genetic algorithm!
