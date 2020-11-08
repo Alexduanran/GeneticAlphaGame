@@ -11,7 +11,7 @@ settings = {
     # Output layer activation is specific to the output layer 
     'output_layer_activation':     'sigmoid',  # Options are [relu, sigmoid, tanh, linear, leaky_relu]
     # Hidden network architecture describes the number of nodes in each hidden layer
-    'hidden_network_architecture': [12, 20, 12],   # A list containing number of nodes in each hidden layer
+    'hidden_network_architecture': [32, 64, 32],   # A list containing number of nodes in each hidden layer
 
     #### GA stuff ####
 

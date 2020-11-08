@@ -23,7 +23,7 @@ class Paddle(Individual):
                  x_pos: Optional[int] = 400, 
                  y_pos: Optional[int] = 580,
                  xspeed: Optional[int] = 0,
-                 hidden_layer_architecture: Optional[List[int]] = [1123125, 9],
+                 hidden_layer_architecture: Optional[List[int]] = [12, 20],
                  hidden_activation: Optional[ActivationFunction] = 'relu',
                  output_activation: Optional[ActivationFunction] = 'sigmoid'
                  ):
@@ -49,7 +49,7 @@ class Paddle(Individual):
         # Each "Vision" has 3 distances it tracks: wall, apple and self
         # there are also one-hot encoded direction and one-hot encoded tail direction,
         # each of which have 4 possibilities.
-        num_inputs = 6 #@TODO: Add one-hot back in 
+        num_inputs = 7 #@TODO: Add one-hot back in 
         self.network_architecture = [num_inputs]                          # Inputs
         self.network_architecture.extend(self.hidden_layer_architecture)  # Hidden layers
         self.network_architecture.append(3)                               # 4 outputs, ['u', 'd', 'l', 'r']
@@ -78,7 +78,8 @@ class Paddle(Individual):
         # Give positive minimum fitness for roulette wheel selection
         # self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)*500) - (((.25 * self._frames)**1.3) * (self.score**1.2))
         # self._fitness = (self._frames) + ((2**self.score) + (self.score**2.1)*500) - (((.25 * self._frames)) * (self.score))
-        self._fitness = (2 ** self.hit + self.hit * 2.1) * 100 + ((1 - min(self.distance_travelled / self.ball_travelled, 1)) * 400) + (self.board_size[0] - self.distance_to_ball) * 0.25
+        print(self.distance_to_ball)
+        self._fitness = (2 ** self.hit + self.hit * 2.1) * 200 + ((1 - min(self.distance_travelled / self.ball_travelled, 1)) * 400) + (self.board_size[0] - self.distance_to_ball) * 0.5
         self._fitness = max(self._fitness, .1)
 
     @property
@@ -132,6 +133,7 @@ class Paddle(Individual):
 
     def move(self):
         self.x_pos += self.xspeed
+        self.distance_travelled += abs(self.xspeed)
         if self.x_pos < 0:
             self.x_pos = 0
         elif self.x_pos > self.board_size[0]-100:
@@ -149,7 +151,7 @@ class Paddle(Individual):
 		    pygame.draw.rect(screen,BLUE,[self.x_pos+2,self.y_pos+2,100-4,20-4])
 	    else:
 		    pygame.draw.rect(screen,BLACK,[self.x_pos,self.y_pos,100,20])
-		    pygame.draw.rect(screen,RED,[self.x_pos+2,self.y_pos+2,100-4,20-4])
+		    pygame.draw.rect(screen,WHITE,[self.x_pos+2,self.y_pos+2,100-4,20-4])
         
        
 

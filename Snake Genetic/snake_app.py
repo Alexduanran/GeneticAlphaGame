@@ -1,7 +1,6 @@
 import sys
 from typing import List
-from paddle import *
-from ball import *
+from snakeClass import *
 import numpy as np
 import pygame
 from neural_network import FeedForwardNetwork, sigmoid, linear, relu
@@ -14,6 +13,14 @@ from genetic_algorithm.crossover import uniform_binary_crossover, single_point_b
 from math import sqrt
 from decimal import Decimal
 import random
+
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+GRAY = (0, 50, 0)
+WHITE = (255, 255, 255)
+YELLOW = (255, 255, 51)
 
 class Main():
     def __init__(self):
@@ -44,19 +51,22 @@ class Main():
 
         # Create initial generation
         for _ in range(settings['num_parents']):
-            individual = Paddle(self.board_size, hidden_layer_architecture=settings['hidden_network_architecture'],
-                              hidden_activation=settings['hidden_layer_activation'],
-                              output_activation=settings['output_layer_activation'])
+            individual = Snake(200, 200, 3, "R", 20, 
+                                board_size=self.board_size,
+                                hidden_layer_architecture=settings['hidden_network_architecture'],
+                                hidden_activation=settings['hidden_layer_activation'],
+                                output_activation=settings['output_layer_activation'])
             individuals.append(individual)
 
         self.population = Population(individuals)
+        self.apple = Apple(20, 100, 100, RED, self.board_size[0], self.board_size[1])
 
         self.current_generation = 0
 
         # Pygame
         pygame.init()
         screen = pygame.display.set_mode(self.board_size)
-        pygame.display.set_caption('pong')
+        pygame.display.set_caption('snake')
 
         # The loop will carry on until the user exit the game (e.g. clicks the close button).
         carryOn = True
@@ -65,15 +75,12 @@ class Main():
 
         # Best of single generation
         self.winner = None
-        self.winner_index = -1
         # Best paddle of all generations
         self.champion = None
-        self.champion_index = -1
         self.champion_fitness = -1 * np.inf
 
-        # Initilize training paddle
-        training_paddle = Paddle(self.board_size, y_pos=0)
-        self.newball = True
+        self.num_apples = 0
+        self.best_apples = 0
 
         while carryOn:
             for event in pygame.event.get():
@@ -81,56 +88,130 @@ class Main():
                     carryOn = False
 
             screen.fill(BLACK)
-            # New set of balls
-            if self.newball:
-                ball_x = np.random.randint(0, 800)
-                xspeed = 5 if np.random.random() > 0.5 else -5
-                balls = [Ball(x=ball_x, xspeed=xspeed) for _ in range(self._next_gen_size+1)]
-                self.newball = False
-
-            # Update training paddle
-            training_paddle.update(ball=balls[-1])
-            balls[-1].update(training_paddle)
-            balls[-1].update_pos()
-            training_paddle.draw(screen)
+            #  draw the grid
+            for x in range(0, self.board_size[0], 20):
+                pygame.draw.line(screen, GRAY, (x, 0), (x, self.board_size[1]))
+            for y in range(0, self.board_size[1], 20):
+                pygame.draw.line(screen, GRAY, (0, y), (self.board_size[0], y))
+            #  draw the apple
+            pygame.draw.rect(screen, self.apple.color, self.apple.rect)
+            
+            font = pygame.font.Font('freesansbold.ttf', 18)
+            generation_text = font.render("Generation: %d" % self.current_generation, True, WHITE)
+            apples_text = font.render("Apples: %d" % self.num_apples, True, WHITE)
+            best_apples_text = font.render("Best: %d" % self.best_apples, True, WHITE)
+            screen.blit(generation_text, (self.board_size[0] - 150, 10))
+            screen.blit(apples_text, (self.board_size[0] - 150, 40))
+            screen.blit(best_apples_text, (self.board_size[0] - 150, 70))
 
             self.still_alive = 0
+            self.not_reach_apple = 0
             # Loop through the paddles in the generation
-            for i, paddle in enumerate(self.population.individuals):
-
+            for snake in self.population.individuals:
                 # Update paddel if still alive
-                if paddle.is_alive:
+                if snake.is_alive:
                     self.still_alive += 1
-                    #----------------------------------------inputs for neural network--------------------------------------------
-                    distance = ((balls[i].y - paddle.y_pos) ** 2 + (balls[i].x - paddle.x_pos) ** 2) ** 0.5
-                    ball_distance_left_wall = balls[i].x - 0
-                    ball_distance_right_wall = self.board_size[0] - balls[i].x
-                    inputs = np.array([[paddle.x_pos], [ball_distance_left_wall], [ball_distance_right_wall], [balls[i].xspeed], [paddle.xspeed], [balls[i].y], [balls[i].yspeed]])
-                    # inputs = np.array([[paddle.x_pos], [balls[i].xspeed], [paddle.xspeed], [balls[i].x]])
-                    #----------------------------------------inputs for neural network--------------------------------------------
-                    paddle.update(inputs)
-                    balls[i].update(paddle)
-                    balls[i].update_pos()
-                    paddle.move()
-    
-                # Draw every paddle except the best ones
-                if paddle.is_alive and paddle != self.winner and paddle != self.champion:
-                    paddle.winner = False
-                    paddle.champion = False
-                    balls[i].draw(screen)
-                    paddle.draw(screen)
+                    if not snake.reach_apple:
+                        self.not_reach_apple += 1
+                        #----------------------------------------inputs for neural network--------------------------------------------
+                        inputs = np.zeros((12, ))
+                        # Direction of Snake
+                        if snake.direction == "U":
+                            inputs[0] = 1
+                        elif snake.direction == "R":
+                            inputs[1] = 1
+                        elif snake.direction == "D":
+                            inputs[2] = 1
+                        elif snake.direction == "L":
+                            inputs[3] = 1
+
+                        # Apple position (wrt snake head)
+                        # (0,0) at Top-Left Corner: U: -y; R: +x
+                        if self.apple.y < snake.y:
+                            # apple north snake
+                            inputs[4] = 1
+                        if self.apple.x > snake.x:
+                            # apple east snake
+                            inputs[5] = 1
+                        if self.apple.y > snake.y:
+                            # apple south snake
+                            inputs[6] = 1
+                        if self.apple.x < snake.x:
+                            # apple west snake
+                            inputs[7] = 1
+                        
+                        # Obstacle (Walls, body) position (wrt snake head)
+                        body_x = [rect.x for rect in snake.body]
+                        body_y = [rect.y for rect in snake.body]
+                        body_pos = [(rect.x, rect.y) for rect in snake.body]
+                        if snake.direction != "D" and \
+                        (snake.y <= 0 or (snake.x, snake.y-20) in body_pos):
+                            # obstacle at north
+                            inputs[8] = 1
+                        if snake.direction != "L" and \
+                        (snake.x >= self.board_size[0]-20 or (snake.x+20, snake.y) in body_pos):
+                            # obstacle at east
+                            inputs[9] = 1
+                        if snake.direction != "U" and \
+                        (snake.y >= self.board_size[1]-20 or (snake.x, snake.y+20) in body_pos):
+                            # obstacle at south
+                            inputs[10] = 1
+                        if snake.direction != "R" and \
+                        (snake.x <= 0 or (snake.x-20, snake.y) in body_pos):
+                            # obstacle at west
+                            inputs[11] = 1
+                        #----------------------------------------inputs for neural network--------------------------------------------
+                        snake.updateDirection(inputs)
+                        snake.addHead()
+                        if snake.isDead() or snake.isOutOfBounds(self.board_size[0], self.board_size[1]):
+                            snake.is_alive = False
+                        if not (snake.head.colliderect(self.apple.rect)):
+                            snake.deleteTail()
+                            snake.steps += 1
+                            snake.total_steps += 1
+                            if snake.steps > 150:
+                                snake.is_alive = False
+                        else:
+                            snake.apples += 1
+                            snake.reach_apple = True
+
+                # Draw every snake except the best ones
+                if snake.is_alive and snake != self.winner and snake != self.champion:
+                    snake.winner = False
+                    snake.champion = False
+                    # draw the snake
+                    for part in snake.body:
+                        pygame.draw.rect(screen, GREEN, part)
+                        part_small = part.inflate(-3, -3)
+                        pygame.draw.rect(screen, WHITE, part_small, 3)
+
+            # Draw the winning and champion snake last
+            if self.winner is not None and self.winner.is_alive:
+                # draw the snake
+                for part in snake.body:
+                    pygame.draw.rect(screen, BLUE, part)
+                    part_small = part.inflate(-3, -3)
+                    pygame.draw.rect(screen, WHITE, part_small, 3)
+            if self.champion is not None and self.champion.is_alive:
+                # draw the snake
+                for part in snake.body:
+                    pygame.draw.rect(screen, YELLOW, part)
+                    part_small = part.inflate(-3, -3)
+                    pygame.draw.rect(screen, WHITE, part_small, 3)
+
+            if self.not_reach_apple == 0:
+                self.apple.move()
+                self.num_apples += 1
+                if self.num_apples > self.best_apples:
+                    self.best_apples = self.num_apples
+                for snake_ in self.population.individuals:
+                    if snake_.is_alive:
+                        snake.steps = 0
+                        snake_.reach_apple = False
 
             # Generate new generation when all have died out
             if self.still_alive == 0:
                 self.next_generation()
-
-            # Draw the winning and champion paddle last
-            if self.winner is not None and self.winner.is_alive:
-                balls[self.winner_index].draw(screen)
-                self.winner.draw(screen, winner=True)
-            if self.champion is not None and self.champion.is_alive:
-                balls[self.champion_index].draw(screen)
-                self.champion.draw(screen, champion=True)
             
             # --- Go ahead and update the screen with what we've drawn.
             pygame.display.flip()
@@ -143,7 +224,7 @@ class Main():
 
     def next_generation(self):
         self.current_generation += 1
-        self.newball = True
+        self.num_apples = 0
 
         # Calculate fitness of individuals
         for individual in self.population.individuals:
@@ -151,11 +232,11 @@ class Main():
 
         # Find winner from each generation and champion
         self.winner = self.population.fittest_individual
-        self.winner_index = self.population.individuals.index(self.winner)
         if self.winner.fitness > self.champion_fitness:
             self.champion_fitness = self.winner.fitness
             self.champion = self.winner
-            self.champion_index = self.winner_index
+        self.winner.winner = True
+        self.champion.champion = True
         self.winner.reset()
         self.champion.reset()
 
@@ -168,7 +249,7 @@ class Main():
         self.population.individuals = elitism_selection(self.population, settings['num_parents'])
         
         random.shuffle(self.population.individuals)
-        next_pop: List[Paddle] = []
+        next_pop: List[Snake] = []
 
         # parents + offspring selection type ('plus')
         if settings['selection_type'].lower() == 'plus':
@@ -211,9 +292,9 @@ class Main():
                 np.clip(c2_params['b' + str(l)], -1, 1, out=c2_params['b' + str(l)])
 
             # Create children from chromosomes generated above
-            c1 = Paddle(p1.board_size, chromosome=c1_params, hidden_layer_architecture=p1.hidden_layer_architecture,
+            c1 = Snake(200, 200, 3, "R", 20, board_size=p1.board_size, chromosome=c1_params, hidden_layer_architecture=p1.hidden_layer_architecture,
                        hidden_activation=p1.hidden_activation, output_activation=p1.output_activation)
-            c2 = Paddle(p2.board_size, chromosome=c2_params, hidden_layer_architecture=p2.hidden_layer_architecture,
+            c2 = Snake(200, 200, 3, "R", 20, board_size=p2.board_size, chromosome=c2_params, hidden_layer_architecture=p2.hidden_layer_architecture,
                        hidden_activation=p2.hidden_activation, output_activation=p2.output_activation)
 
             # Add children to the next generation
