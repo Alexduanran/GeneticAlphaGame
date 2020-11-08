@@ -1,4 +1,4 @@
-# Pong-Genetic
+# GeneticAlphaGame
 
 ### Pong-Genetic-V1
 
