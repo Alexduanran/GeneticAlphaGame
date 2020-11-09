@@ -2,6 +2,7 @@ import sys
 from typing import List
 from snakeClass import *
 import numpy as np
+from scipy.spatial.distance import euclidean
 import pygame
 from neural_network import FeedForwardNetwork, sigmoid, linear, relu
 from settings import settings
@@ -106,9 +107,9 @@ class Main():
 
             self.still_alive = 0
             self.not_reach_apple = 0
-            # Loop through the paddles in the generation
+            # Loop through the snakes in the generation
             for snake in self.population.individuals:
-                # Update paddel if still alive
+                # Update snake if still alive
                 if snake.is_alive:
                     self.still_alive += 1
                     if not snake.reach_apple:
@@ -162,17 +163,25 @@ class Main():
                             inputs[11] = 1
                         #----------------------------------------inputs for neural network--------------------------------------------
                         snake.updateDirection(inputs)
+                        pos_cur = [snake.x, snake.y]
                         snake.addHead()
+                        pos_next = [snake.x, snake.y]
+                        pos_apple = [self.apple.x, self.apple.y]
+                        d1 = euclidean(pos_apple, pos_cur)
+                        d2 = euclidean(pos_apple, pos_next)
+                        snake.distance += 1 if d1 > d2 else -1
                         if snake.isDead() or snake.isOutOfBounds(self.board_size[0], self.board_size[1]):
                             snake.is_alive = False
                         if not (snake.head.colliderect(self.apple.rect)):
                             snake.deleteTail()
                             snake.steps += 1
                             snake.total_steps += 1
-                            if snake.steps > 150:
+                            if snake.steps > self.board_size[0] / 2 + 20:
+                                snake.total_steps = np.inf
                                 snake.is_alive = False
                         else:
                             snake.apples += 1
+                            snake.steps = 0
                             snake.reach_apple = True
 
                 # Draw every snake except the best ones
@@ -250,7 +259,12 @@ class Main():
         
         random.shuffle(self.population.individuals)
         next_pop: List[Snake] = []
-
+        x = random.randrange(0, (self.board_size[0] - 20), 20)
+        y = random.randrange(0, (self.board_size[1] - 20), 20)
+        self.winner.x = x
+        self.winner.y = y
+        self.champion.x = x
+        self.champion.y = y
         # parents + offspring selection type ('plus')
         if settings['selection_type'].lower() == 'plus':
             next_pop.append(self.winner)
@@ -291,10 +305,10 @@ class Main():
                 np.clip(c1_params['b' + str(l)], -1, 1, out=c1_params['b' + str(l)])
                 np.clip(c2_params['b' + str(l)], -1, 1, out=c2_params['b' + str(l)])
 
-            # Create children from chromosomes generated above
-            c1 = Snake(200, 200, 3, "R", 20, board_size=p1.board_size, chromosome=c1_params, hidden_layer_architecture=p1.hidden_layer_architecture,
+             # Create children from chromosomes generated above
+            c1 = Snake(x, y, 3, "R", 20, board_size=p1.board_size, chromosome=c1_params, hidden_layer_architecture=p1.hidden_layer_architecture,
                        hidden_activation=p1.hidden_activation, output_activation=p1.output_activation)
-            c2 = Snake(200, 200, 3, "R", 20, board_size=p2.board_size, chromosome=c2_params, hidden_layer_architecture=p2.hidden_layer_architecture,
+            c2 = Snake(x, y, 3, "R", 20, board_size=p2.board_size, chromosome=c2_params, hidden_layer_architecture=p2.hidden_layer_architecture,
                        hidden_activation=p2.hidden_activation, output_activation=p2.output_activation)
 
             # Add children to the next generation

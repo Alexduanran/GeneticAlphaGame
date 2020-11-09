@@ -39,6 +39,7 @@ class Snake:
         self.apples = 0
         self.total_steps = 0
         self.steps = 0
+        self.distance = 0
 
         self.winner = False
         self.champion = False
@@ -96,7 +97,7 @@ class Snake:
     
     def calculate_fitness(self):
         # Give positive minimum fitness for roulette wheel selection
-        self._fitness = (2 ** self.apples + self.apples * 2.1) * 400 - self.total_steps * 2
+        self._fitness = (2 ** self.apples + self.apples * 2.1) * 400 - self.total_steps * 2 + self.distance * 10
         self._fitness = max(self._fitness, .1)
 
     def updateDirection(self, inputs):
@@ -158,6 +159,7 @@ class Snake:
         self.is_alive = True
         self.steps = 0
         self.total_steps = 0
+        self.distance = 0
         self.x = 200
         self.y = 200
         self.length = 3
