@@ -71,6 +71,9 @@ class Main():
         self.champion_index = -1
         self.champion_fitness = -1 * np.inf
 
+        self.num_hit = 0
+        self.best_hit = 0
+
         # Initilize training paddle
         training_paddle = Paddle(self.board_size, y_pos=0)
         self.newball = True
@@ -81,10 +84,19 @@ class Main():
                     carryOn = False
 
             screen.fill(BLACK)
+
+            font = pygame.font.Font('freesansbold.ttf', 18)
+            generation_text = font.render("Generation: %d" % self.current_generation, True, WHITE)
+            hit_text = font.render("Hits: %d" % self.num_hit, True, WHITE)
+            best_hit_text = font.render("Best: %d" % self.best_hit, True, WHITE)
+            screen.blit(generation_text, (self.board_size[0] - 150, 30))
+            screen.blit(hit_text, (self.board_size[0] - 150, 60))
+            screen.blit(best_hit_text, (self.board_size[0] - 150, 90))
+
             # New set of balls
             if self.newball:
                 ball_x = np.random.randint(0, 800)
-                xspeed = 5 if np.random.random() > 0.5 else -5
+                xspeed = 15 if np.random.random() > 0.5 else -15
                 balls = [Ball(x=ball_x, xspeed=xspeed) for _ in range(self._next_gen_size+1)]
                 self.newball = False
 
@@ -110,6 +122,8 @@ class Main():
                     #----------------------------------------inputs for neural network--------------------------------------------
                     paddle.update(inputs)
                     balls[i].update(paddle)
+                    self.num_hit = max(self.num_hit, paddle.hit)
+                    self.best_hit = max(self.num_hit, self.best_hit)
                     balls[i].update_pos()
                     paddle.move()
     
@@ -144,6 +158,7 @@ class Main():
     def next_generation(self):
         self.current_generation += 1
         self.newball = True
+        self.num_hit = 0
 
         # Calculate fitness of individuals
         for individual in self.population.individuals:

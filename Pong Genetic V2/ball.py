@@ -8,7 +8,7 @@ GREEN = (0,180,0)
 BLUE = (50,200,255)
 
 class Ball:
-    def __init__(self, x = 50, y = 50, xspeed = 5, yspeed = 5):
+    def __init__(self, x = 50, y = 50, xspeed = 15, yspeed = 15):
 	    self.x = x
 	    self.y = y
 	    self.xlast = x-xspeed

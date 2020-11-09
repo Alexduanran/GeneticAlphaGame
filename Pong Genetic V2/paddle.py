@@ -124,9 +124,9 @@ class Paddle(Individual):
             self.x_pos = ball.x - 50
             return
         if self.network.out == 0:
-            self.xspeed = -5
+            self.xspeed = -15
         elif self.network.out == 1:
-            self.xspeed = 5
+            self.xspeed = 15
         elif self.network.out == 2:
             self.xspeed = 0
         return True
