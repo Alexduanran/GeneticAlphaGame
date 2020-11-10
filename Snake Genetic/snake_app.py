@@ -115,6 +115,9 @@ class Main():
                     if not snake.reach_apple:
                         self.not_reach_apple += 1
                         #----------------------------------------inputs for neural network--------------------------------------------
+                        ''' # Version 1
+                        12 inputs
+                        '''
                         inputs = np.zeros((12, ))
                         # Direction of Snake
                         if snake.direction == "U":
@@ -146,7 +149,7 @@ class Main():
                         body_y = [rect.y for rect in snake.body]
                         body_pos = [(rect.x, rect.y) for rect in snake.body]
                         if snake.direction != "D" and \
-                        (snake.y <= 0 or (snake.x, snake.y-20) in body_pos):
+                        (snake.y  <= 0 or (snake.x, snake.y-20) in body_pos):
                             # obstacle at north
                             inputs[8] = 1
                         if snake.direction != "L" and \
@@ -161,6 +164,39 @@ class Main():
                         (snake.x <= 0 or (snake.x-20, snake.y) in body_pos):
                             # obstacle at west
                             inputs[11] = 1
+
+                        '''
+                        Version 2 of inputs
+                        First 24 inputs are distance_to_wall, distance_to_apple
+                        and distance_to_body in resepct to 8 directions from the
+                        grid of snake's head.
+                        ''
+                        inputs = snake.look(self.apple.x, self.apple.y)
+                        directions = np.zeros((8, ))
+                        if snake.direction == "U":
+                            directions[0] = 1
+                        elif snake.direction == "R":
+                            directions[1] = 1
+                        elif snake.direction == "D":
+                            directions[2] = 1
+                        elif snake.direction == "L":
+                            directions[3] = 1
+                        # Apple position (wrt snake head)
+                        # (0,0) at Top-Left Corner: U: -y; R: +x
+                        if self.apple.y < snake.y:
+                            # apple north snake
+                            directions[4] = 1
+                        if self.apple.x > snake.x:
+                            # apple east snake
+                            directions[5] = 1
+                        if self.apple.y > snake.y:
+                            # apple south snake
+                            directions[6] = 1
+                        if self.apple.x < snake.x:
+                            # apple west snake
+                            directions[7] = 1
+                        inputs = np.concatenate((inputs, directions), axis=0)
+                        '''
                         #----------------------------------------inputs for neural network--------------------------------------------
                         snake.updateDirection(inputs)
                         pos_cur = [snake.x, snake.y]

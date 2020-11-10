@@ -153,6 +153,36 @@ class Snake:
             return True
         return False
 
+    def look(self, appleX, appleY):
+        inputs = np.zeros((24, ))
+        directions = [(0,1),(-1,1),(-1,0),(-1,-1),(0,-1),(1,-1),(1,0),(1,1)]
+        x_, y_ = self.head.x, self.head.y
+        for index, (i, j) in enumerate(directions):
+            x_, y_ = self.head.x, self.head.y
+            dis_to_apple = 0
+            dis_to_wall = 0
+            dis_to_body = 0
+            apple_found = False
+            body_found = False
+            while x_ < self.board_size[0] - self.boxSize and x_ > 0 and\
+                y_ < self.board_size[1] - self.boxSize and y_ > 0:
+                x_ += self.boxSize * i
+                y_ += self.boxSize * j
+                dis_to_wall += 1
+                if not apple_found:
+                    dis_to_apple += 1
+                    if x_ == appleX and y_ == appleY:
+                        apple_found = True
+                if not body_found:
+                    dis_to_body += 1
+                    if Rect(x_, y_, self.boxSize, self.boxSize) in self.body:
+                        body_found = True
+            inputs[index * 3] = dis_to_wall
+            inputs[index * 3 + 1] = dis_to_apple
+            inputs[index * 3 + 2] = dis_to_body
+        return inputs
+                
+
     def reset(self):
         self._fitness = 0
         self.apples = 0
