@@ -81,7 +81,7 @@ class Snake:
 
         # If chromosome is set, take it
         if chromosome:
-            # self._chromosome = chromosome
+            # self._chromosome = chromosomef
             self.network.params = chromosome
             # self.decode_chromosome()
         else:
@@ -97,7 +97,9 @@ class Snake:
     
     def calculate_fitness(self):
         # Give positive minimum fitness for roulette wheel selection
-        self._fitness = (2 ** self.apples + self.apples * 2.1) * 400 - self.total_steps * 2 + self.distance * 10
+        # self._fitness = (2 ** self.apples + self.apples * 2.1) * 400 - self.total_steps * 2 + self.distance * 10
+        # self._fitness = 100 * self.apples + self.distance - 0.1 * self.total_steps
+        self._fitness = self.total_steps + (2 ** self.apples + 500 * self.apples ** 2.1) - (0.25 * self.total_steps ** 1.3 * self.apples ** 1.2) 
         self._fitness = max(self._fitness, .1)
 
     def updateDirection(self, inputs):
@@ -156,7 +158,6 @@ class Snake:
     def look(self, appleX, appleY):
         inputs = np.zeros((24, ))
         directions = [(0,1),(-1,1),(-1,0),(-1,-1),(0,-1),(1,-1),(1,0),(1,1)]
-        x_, y_ = self.head.x, self.head.y
         for index, (i, j) in enumerate(directions):
             x_, y_ = self.head.x, self.head.y
             dis_to_apple = 0
@@ -181,7 +182,6 @@ class Snake:
             inputs[index * 3 + 1] = dis_to_apple
             inputs[index * 3 + 2] = dis_to_body
         return inputs
-                
 
     def reset(self):
         self._fitness = 0
@@ -204,6 +204,7 @@ class Snake:
             k2 = 1
         if self.direction == "D":
             k2 = -1
+        self.body = []
         for i in range(self.length):
             tempRect = Rect(self.x + k1*i * self.boxSize,
                             self.y + k2*i * self.boxSize, 

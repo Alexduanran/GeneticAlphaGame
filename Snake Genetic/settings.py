@@ -2,7 +2,7 @@ import numpy as np
 
 
 settings = {
-    'board_size':                  (200, 200),
+    'board_size':                  (400, 400),
 
     #### Neural Network related stuff ####
 
@@ -58,19 +58,4 @@ settings = {
     # @NOTE: If selection_type == 'comma' then lifespan is ignored.
     #   This is equivalent to lifespan = 1 in this case since the parents never make it to the new generation.
     'selection_type':              'plus',     # Options are ['plus', 'comma']
-
-    ## Individual ##
-
-    # How long an individual is allowed to be in the population before dying off.
-    # This can be useful for allowing exploration. Imagine a top individual constantly being selected for crossover.
-    # With a lifespan, after a number of generations, the individual will not be selected to participate in future
-    # generations. This can allow for other individuals to have higher selective pressure than they previously did.
-    # @NOTE this only matters if 'selecton_type' == 'plus'. If 'selection_type' == 'comma', then 'lifespan' is completely ignored.
-    'lifespan':                    np.inf,          # Options are any positive integer or np.inf (typed out as if it were a number, i.e. no quotes to make it a string)
-    # The type of vision the snake has when it sees itself or the apple.
-    # If the vision is binary, then the input into the Neural Network is 1 (can see) or 0 (cannot see).
-    # If the vision is distance, then the input into the Neural Network is 1.0/distance.
-    # 1.0/distance is used to keep values capped at 1.0 as a max.
-    'apple_and_self_vision':       'binary'    # Options are ['binary', 'distance'] 
-
 }

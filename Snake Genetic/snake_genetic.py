@@ -1,4 +1,6 @@
 import sys
+import os
+import json
 from typing import List
 from snakeClass import *
 import numpy as np
@@ -82,11 +84,18 @@ class Main():
 
         self.num_apples = 0
         self.best_apples = 0
+        self.best_index = 0
 
         while carryOn:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     carryOn = False
+
+            if self.current_generation > 100 and self.best_apples <= 6:
+                carryOn = False
+
+            if self.current_generation > 500:
+                carryOn = False
 
             screen.fill(BLACK)
             #  draw the grid
@@ -164,13 +173,14 @@ class Main():
                         (snake.x <= 0 or (snake.x-20, snake.y) in body_pos):
                             # obstacle at west
                             inputs[11] = 1
-
+                        ''
                         '''
                         Version 2 of inputs
                         First 24 inputs are distance_to_wall, distance_to_apple
                         and distance_to_body in resepct to 8 directions from the
                         grid of snake's head.
-                        ''
+                        '''
+                        '''
                         inputs = snake.look(self.apple.x, self.apple.y)
                         directions = np.zeros((8, ))
                         if snake.direction == "U":
@@ -181,8 +191,8 @@ class Main():
                             directions[2] = 1
                         elif snake.direction == "L":
                             directions[3] = 1
-                        # Apple position (wrt snake head)
-                        # (0,0) at Top-Left Corner: U: -y; R: +x
+                        Apple position (wrt snake head)
+                        (0,0) at Top-Left Corner: U: -y; R: +x
                         if self.apple.y < snake.y:
                             # apple north snake
                             directions[4] = 1
@@ -205,7 +215,7 @@ class Main():
                         pos_apple = [self.apple.x, self.apple.y]
                         d1 = euclidean(pos_apple, pos_cur)
                         d2 = euclidean(pos_apple, pos_next)
-                        snake.distance += 1 if d1 > d2 else -1
+                        snake.distance += 1 if d1 > d2 else -1.1
                         if snake.isDead() or snake.isOutOfBounds(self.board_size[0], self.board_size[1]):
                             snake.is_alive = False
                         if not (snake.head.colliderect(self.apple.rect)):
@@ -267,6 +277,9 @@ class Main():
         #Once we have exited the main program loop we can stop the game engine:
         pygame.quit()
 
+    def random_direction(self):
+        return np.random.choice(['U','D','L','R'])
+
     def next_generation(self):
         self.current_generation += 1
         self.num_apples = 0
@@ -282,6 +295,12 @@ class Main():
             self.champion = self.winner
         self.winner.winner = True
         self.champion.champion = True
+
+        if self.winner.apples >= 40:
+            self.best_index += 1
+            individual_name = 'snake' + str(np.random.randint(0,100000)) + '-' + str(self.winner.apples)
+            self.save_snake('best_snakes', individual_name, self.winner, settings)
+
         self.winner.reset()
         self.champion.reset()
 
@@ -307,7 +326,11 @@ class Main():
             next_pop.append(self.champion)
 
         while len(next_pop) < self._next_gen_size:
-            p1, p2 = roulette_wheel_selection(self.population, 2)
+            try:
+                p1, p2 = roulette_wheel_selection(self.population, 2)
+            except:
+                p1 = self.winner
+                p2 = self.champion
 
             L = len(p1.network.layer_nodes)
             c1_params = {}
@@ -342,9 +365,9 @@ class Main():
                 np.clip(c2_params['b' + str(l)], -1, 1, out=c2_params['b' + str(l)])
 
              # Create children from chromosomes generated above
-            c1 = Snake(x, y, 3, "R", 20, board_size=p1.board_size, chromosome=c1_params, hidden_layer_architecture=p1.hidden_layer_architecture,
+            c1 = Snake(x, y, 3, self.random_direction(), 20, board_size=p1.board_size, chromosome=c1_params, hidden_layer_architecture=p1.hidden_layer_architecture,
                        hidden_activation=p1.hidden_activation, output_activation=p1.output_activation)
-            c2 = Snake(x, y, 3, "R", 20, board_size=p2.board_size, chromosome=c2_params, hidden_layer_architecture=p2.hidden_layer_architecture,
+            c2 = Snake(x, y, 3, self.random_direction(), 20, board_size=p2.board_size, chromosome=c2_params, hidden_layer_architecture=p2.hidden_layer_architecture,
                        hidden_activation=p2.hidden_activation, output_activation=p2.output_activation)
 
             # Add children to the next generation
@@ -409,6 +432,87 @@ class Main():
         else:
             raise Exception('Unable to determine valid mutation based off probabilities.')
 
+    def save_snake(self, population_folder: str, individual_name: str, snake: Snake, settings: Dict[str, Any]) -> None:
+        # Make population folder if it doesn't exist
+        if not os.path.exists(population_folder):
+            os.makedirs(population_folder)
+
+        # Save off settings
+        if 'settings.json' not in os.listdir(population_folder):
+            f = os.path.join(population_folder, 'settings.json')
+            with open(f, 'w', encoding='utf-8') as out:
+                json.dump(settings, out, sort_keys=True, indent=4)
+
+        # Make directory for the individual
+        individual_dir = os.path.join(population_folder, individual_name)
+        os.makedirs(individual_dir)
+
+        # # Save some constructor information for replay
+        # # @NOTE: No need to save chromosome since that is saved as .npy
+        # # @NOTE: No need to save board_size or hidden_layer_architecture
+        # #        since these are taken from settings
+        # constructor = {}
+        # constructor['start_pos'] = snake.start_pos.to_dict()
+        # constructor['apple_seed'] = snake.apple_seed
+        # constructor['initial_velocity'] = snake.initial_velocity
+        # constructor['starting_direction'] = snake.starting_direction
+        # snake_constructor_file = os.path.join(individual_dir, 'constructor_params.json')
+
+        # # Save
+        # with open(snake_constructor_file, 'w', encoding='utf-8') as out:
+        #     json.dump(constructor, out, sort_keys=True, indent=4)
+
+        L = len(snake.network.layer_nodes)
+        for l in range(1, L):
+            w_name = 'W' + str(l)
+            b_name = 'b' + str(l)
+
+            weights = snake.network.params[w_name]
+            bias = snake.network.params[b_name]
+
+            np.save(os.path.join(individual_dir, w_name), weights)
+            np.save(os.path.join(individual_dir, b_name), bias)
+
+    def load_snake(self, population_folder: str, individual_name: str, settings: Optional[Union[Dict[str, Any], str]] = None) -> Snake:
+        # if not settings:
+        #     f = os.path.join(population_folder, 'settings.json')
+        #     if not os.path.exists(f):
+        #         raise Exception("settings needs to be passed as an argument if 'settings.json' does not exist under population folder")
+            
+        #     with open(f, 'r', encoding='utf-8') as fp:
+        #         settings = json.load(fp)
+
+        # elif isinstance(settings, dict):
+        #     settings = settings
+
+        # elif isinstance(settings, str):
+        #     filepath = settings
+        #     with open(filepath, 'r', encoding='utf-8') as fp:
+        #         settings = json.load(fp)
+
+        params = {}
+        for fname in os.listdir(os.path.join(population_folder, individual_name)):
+            extension = fname.rsplit('.npy', 1)
+            if len(extension) == 2:
+                param = extension[0]
+                params[param] = np.load(os.path.join(population_folder, individual_name, fname))
+            else:
+                continue
+
+        # # Load constructor params for the specific snake
+        # constructor_params = {}
+        # snake_constructor_file = os.path.join(population_folder, individual_name, 'constructor_params.json')
+        # with open(snake_constructor_file, 'r', encoding='utf-8') as fp:
+        #     constructor_params = json.load(fp)
+
+        snake = Snake(chromosome=params, 
+                    x=200,y=200,length=3,
+                    direction='R', boxSize=20, board_size=settings['board_size'],
+                    hidden_layer_architecture=settings['hidden_network_architecture'],
+                    hidden_activation=settings['hidden_layer_activation'],
+                    output_activation=settings['output_layer_activation'],
+                    )
+        return snake
 
 if __name__ == "__main__":
     main = Main()
