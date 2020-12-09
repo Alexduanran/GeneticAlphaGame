@@ -1,4 +1,5 @@
 import sys
+import shutil
 from typing import List
 from paddle import *
 from ball import *
@@ -78,7 +79,7 @@ class Main():
         training_paddle = Paddle(self.board_size, y_pos=0)
         self.newball = True
 
-        while carryOn:
+        while carryOn and self.current_generation <= 50:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     carryOn = False
@@ -104,6 +105,7 @@ class Main():
             training_paddle.update(ball=balls[-1])
             balls[-1].update(training_paddle)
             balls[-1].update_pos()
+            training_paddle.is_alive = True
             training_paddle.draw(screen)
 
             self.still_alive = 0
@@ -117,7 +119,7 @@ class Main():
                     distance = ((balls[i].y - paddle.y_pos) ** 2 + (balls[i].x - paddle.x_pos) ** 2) ** 0.5
                     ball_distance_left_wall = balls[i].x - 0
                     ball_distance_right_wall = self.board_size[0] - balls[i].x
-                    inputs = np.array([[paddle.x_pos], [ball_distance_left_wall], [ball_distance_right_wall], [balls[i].xspeed], [paddle.xspeed], [balls[i].y], [balls[i].yspeed]])
+                    inputs = np.array([[paddle.x_pos], [balls[i].xspeed], [paddle.xspeed], [balls[i].x], [balls[i].yspeed], [balls[i].y]])
                     # inputs = np.array([[paddle.x_pos], [balls[i].xspeed], [paddle.xspeed], [balls[i].x]])
                     #----------------------------------------inputs for neural network--------------------------------------------
                     paddle.update(inputs)
@@ -171,6 +173,12 @@ class Main():
             self.champion_fitness = self.winner.fitness
             self.champion = self.winner
             self.champion_index = self.winner_index
+
+        # Save the network of best birds from each generation
+        if self.current_generation <= 100:
+            individual_name = 'paddle' + str(self.current_generation)
+            self.save_paddle('plot/best_paddle_each_generation', individual_name, self.winner, settings)
+        
         self.winner.reset()
         self.champion.reset()
 
@@ -293,6 +301,49 @@ class Main():
         else:
             raise Exception('Unable to determine valid mutation based off probabilities.')
 
+
+    def save_paddle(self, population_folder: str, individual_name: str, paddle: Paddle, settings: Dict[str, Any]) -> None:
+        # Make population folder if it doesn't exist
+        if not os.path.exists(population_folder):
+            os.makedirs(population_folder)
+
+        # Save off settings
+        if 'settings.json' not in os.listdir(population_folder):
+            f = os.path.join(population_folder, 'settings.json')
+            with open(f, 'w', encoding='utf-8') as out:
+                json.dump(settings, out, sort_keys=True, indent=4)
+
+        # Make directory for the individual
+        individual_dir = os.path.join(population_folder, individual_name)
+        if individual_name in os.listdir(population_folder):
+            shutil.rmtree(individual_dir)
+        os.makedirs(individual_dir)
+
+        # Save some constructor information for replay
+        # @NOTE: No need to save chromosome since that is saved as .npy
+        # @NOTE: No need to save board_size or hidden_layer_architecture
+        #        since these are taken from settings
+        # constructor = {}
+        # constructor['start_pos'] = snake.start_pos.to_dict()
+        # constructor['apple_seed'] = snake.apple_seed
+        # constructor['initial_velocity'] = snake.initial_velocity
+        # constructor['starting_direction'] = snake.starting_direction
+        # snake_constructor_file = os.path.join(individual_dir, 'constructor_params.json')
+
+        # # Save
+        # with open(snake_constructor_file, 'w', encoding='utf-8') as out:
+        #     json.dump(constructor, out, sort_keys=True, indent=4)
+
+        L = len(paddle.network.layer_nodes)
+        for l in range(1, L):
+            w_name = 'W' + str(l)
+            b_name = 'b' + str(l)
+
+            weights = paddle.network.params[w_name]
+            bias = paddle.network.params[b_name]
+
+            np.save(os.path.join(individual_dir, w_name), weights)
+            np.save(os.path.join(individual_dir, b_name), bias)
 
 if __name__ == "__main__":
     main = Main()

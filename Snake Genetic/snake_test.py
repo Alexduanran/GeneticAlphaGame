@@ -2,6 +2,7 @@ import os
 from snakeClass import *
 from settings import settings
 import pygame
+import numpy as np
 
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
@@ -12,12 +13,15 @@ WHITE = (255, 255, 255)
 YELLOW = (255, 255, 51)
 
 class Main():
-    def __init__(self):
+    def __init__(self, folder, name):
+
+        self.index = 1
+        self.apples = []
         
         self.board_size = settings['board_size']
         x = random.randrange(0, (self.board_size[0] - 20), 20)
         y = random.randrange(0, (self.board_size[1] - 20), 20)
-        self.snake = self.load_snake('best_snakes', 'snake54615-40', settings)
+        self.snake = self.load_snake(folder, name, settings)
         self.snake.x, self.snake.y = x, y
         self.apple = Apple(20, 100, 200, RED, self.board_size[0], self.board_size[1])
         self.apple.move()
@@ -34,7 +38,7 @@ class Main():
 
         self.num_apples = 0
 
-        while carryOn:
+        while carryOn and self.index <= 100:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     carryOn = False
@@ -164,6 +168,9 @@ class Main():
         pygame.quit()
 
     def reset(self):
+        self.index += 1
+        self.apples.append(self.num_apples)
+
         self.snake.length = 3
         self.num_apples = 0
         self.snake.direction = 'R'
@@ -230,6 +237,9 @@ class Main():
                     output_activation=settings['output_layer_activation'],
                     )
         return snake
+
+    def getAvg(self):
+        return self.apples, np.mean(self.apples)
 
 if __name__ == "__main__":
     main = Main()

@@ -1,0 +1,34 @@
+{
+    "SBX_eta": 100,
+    "SPBX_type": "r",
+    "Window_Height": 1024,
+    "Window_Width": 576,
+    "apple_and_self_vision": "binary",
+    "bird_jump_speed": -10,
+    "board_size": [
+        800,
+        600
+    ],
+    "crossover_selection_type": "roulette_wheel",
+    "gravity": 0.25,
+    "hidden_layer_activation": "relu",
+    "hidden_network_architecture": [
+        12,
+        20,
+        12
+    ],
+    "init_bird_x_pos": 100,
+    "init_bird_y_pos": 250,
+    "lifespan": Infinity,
+    "mutation_rate": 0.05,
+    "mutation_rate_type": "static",
+    "num_offspring": 100,
+    "num_parents": 50,
+    "output_layer_activation": "sigmoid",
+    "pipe_interval_in_frames": 100,
+    "probability_SBX": 0.5,
+    "probability_SPBX": 0.5,
+    "probability_gaussian": 1.0,
+    "probability_random_uniform": 0.0,
+    "selection_type": "plus"
+}

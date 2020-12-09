@@ -17,7 +17,6 @@ def simulated_binary_crossover(parent1: np.ndarray, parent2: np.ndarray, eta: fl
     gamma = np.empty(parent1.shape)
     gamma[rand <= 0.5] = (2 * rand[rand <= 0.5]) ** (1.0 / (eta + 1))  # First case of equation 9.11
     gamma[rand > 0.5] = (1.0 / (2.0 * (1.0 - rand[rand > 0.5]))) ** (1.0 / (eta + 1))  # Second case
-
     # Calculate Child 1 chromosome (Eq. 9.9)
     chromosome1 = 0.5 * ((1 + gamma)*parent1 + (1 - gamma)*parent2)
     # Calculate Child 2 chromosome (Eq. 9.10)

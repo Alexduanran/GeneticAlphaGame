@@ -24,7 +24,6 @@ def gaussian_mutation(chromosome: np.ndarray, prob_mutation: float,
     # Otherwise center around N(0,1)
     else:
         gaussian_mutation = np.random.normal(size=chromosome.shape)
-    
     if scale:
         gaussian_mutation[mutation_array] *= scale
 

@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import shutil
 from typing import List
 from snakeClass import *
 import numpy as np
@@ -86,7 +87,7 @@ class Main():
         self.best_apples = 0
         self.best_index = 0
 
-        while carryOn:
+        while carryOn and self.current_generation <= 100:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     carryOn = False
@@ -296,10 +297,10 @@ class Main():
         self.winner.winner = True
         self.champion.champion = True
 
-        if self.winner.apples >= 40:
-            self.best_index += 1
-            individual_name = 'snake' + str(np.random.randint(0,100000)) + '-' + str(self.winner.apples)
-            self.save_snake('best_snakes', individual_name, self.winner, settings)
+        # # Save the network of best snakes from each generation
+        # if self.current_generation <= 100:
+        #     individual_name = 'snake' + str(self.current_generation)
+        #     self.save_snake('Snake Genetic/plot/best_snakes_each_generation2', individual_name, self.winner, settings)
 
         self.winner.reset()
         self.champion.reset()
@@ -445,6 +446,8 @@ class Main():
 
         # Make directory for the individual
         individual_dir = os.path.join(population_folder, individual_name)
+        if individual_name in os.listdir(population_folder):
+            shutil.rmtree(individual_dir)
         os.makedirs(individual_dir)
 
         # # Save some constructor information for replay
